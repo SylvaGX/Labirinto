@@ -1,0 +1,646 @@
+; multi-segment executable file template.
+include Macros.inc
+org 100h
+.model small     ;mudamos as macros para PRINT imprime tudo de uma vez
+.stack 256
+.data     ;segmento
+w db 0 ;x
+h db 0 ;y
+
+
+;variaveis com nome dos ficheiros que contem o nivel
+nivel1 DB "nivel1.txt", 0
+
+nivel2 DB "nivel2.txt", 0
+
+nivel3 DB "nivel3.txt", 0
+
+currlevel DB 1 ;o nivel que esta para selecionar o nivel depois
+;nivel geral
+nivel DW ?    ;fazer o offset de uma das variaveis que contem o nome do ficheiro
+
+;Tempo limite
+tmp1 DW  10     ;tempo nivel 1 convem correr nos DOSBOX
+tmp2 DW  50
+tmp3 DW  90
+tmpCurr DW 0   ;tempo corrente
+lastSec DB 0    ;guarda os segundos
+printTmp DB 0  ;imprime o tempo
+
+lost DB 0    ;variavel para saber se perdeu o jogo
+
+loadNivel DB 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+posMenu DB 0   ;saber que posicao do menu esta
+
+handle DW ?
+
+buffer DB 0
+
+;x, y, fim de array
+player DB 0, 0
+
+;x, y, fim de array
+entrada DB 1, 1
+
+;x, y, fim de array
+saida DB 20, 1
+
+;Direction constants:
+left equ 4bh
+right equ 4dh
+up equ 48h
+down equ 50h
+
+.code
+start:
+mov ax, @data
+mov ds, ax
+
+mov ah, 0h
+mov al, 03h
+int 10h
+
+CURSOROFF  ;e tira o cursor
+
+GOTOXY 25, 5
+PRINT "LabHint"
+GOTOXY 25,7
+PRINT "Jogar"
+GOTOXY 25,8
+PRINT "Sair"
+GOTOXY 22, 7
+PRINT "->"
+MenuLoop:
+mov ax, 0
+int 16h
+cmp al, 0Dh
+jz menuOption    ;saber se clicou no enter setinha para cima ou setinha para  baixo
+cmp ah, down
+jz menuDown
+cmp ah, up
+jz menuUp
+jmp MenuLoop
+
+menuDown:                         ;setinha para baixo
+call RemoveSeta
+cmp posMenu, 1           ;compara a posicao para ver se e igual a 1,se for decrementa senao incrementa
+je menuDownDec
+inc posMenu              ;aumenta
+jmp menusPrint
+menuDownDec:
+dec posMenu              ;diminui a posicao
+jmp menusPrint
+
+menuUp:
+call RemoveSeta
+cmp posMenu, 0
+je  menuUpInc
+dec posMenu
+jmp menusPrint
+menuUpInc:
+inc posMenu
+
+menusPrint:
+call PrintSeta    ;imprimir a seta e voltar ao loop
+jmp MenuLoop
+
+PrintSeta:
+mov bx, 0
+mov bl, posMenu
+mov h, 7              ;imprime a seta
+add h, bl
+GOTOXY 22, h
+PRINT "->"
+ret
+
+RemoveSeta:
+mov bx, 0
+mov bl, posMenu
+mov h, 7                ;remove
+add h, bl
+GOTOXY 22, h
+PRINT "  "
+ret
+
+menuOption:
+cmp posMenu, 0          ; compara a posiçao do menu e se for 0 vai escolhe o nivel
+jz nivelesc
+mov ax, 0
+mov ah, 06h
+mov bh, 0111b           ; limpar o ecra
+mov bl, 0
+mov cx, 0
+mov dx, 184Fh ;limite maximo  de colunas
+int 10h
+ret
+
+nivelesc:
+
+cmp currlevel,1
+jz  selnivel1
+cmp currlevel,2
+jz  selnivel2
+cmp currlevel,3            ;escolhe o nivel dependo do valor da variavel
+jz  selnivel3
+jmp EndGame
+
+selnivel1:
+
+mov bx, offset nivel1
+mov nivel, bx
+mov bx, 0                ;copia o offset e dps coloca na variavel nivel,dps soma o tempo do nivel ao que esta na variavel
+mov bx, tmp1[0]
+add tmpCurr[0], bx
+jmp play
+
+selnivel2:
+
+mov bx, offset nivel2
+mov nivel, bx
+mov bx, 0
+mov bx, tmp2[0]
+add tmpCurr[0], bx
+jmp play
+
+selnivel3:
+
+mov bx, offset nivel3
+mov nivel, bx
+mov bx, 0
+mov bx, tmp3[0]
+add tmpCurr[0], bx
+
+
+play:
+mov ax, 0
+mov ah, 06h
+mov bh, 0111b  ;limpar o ecra
+mov bl, 0
+mov cx, 0
+mov dx, 184Fh
+int 10h
+
+mov al, 0
+mov dx, nivel
+mov ah, 3dh
+int 21h               ; Abre o ficheiro que esta no nivel     (que e um offset)
+mov handle, ax
+
+mov al, 0
+mov bx, handle
+mov cx, 0              ; Ir para a a posicao 0, 0 do ficheiro
+mov dx, 0
+mov ah, 42h
+int 21h
+
+mov bx, handle
+mov dx, offset buffer
+mov cx, 1
+mov ah, 3fh                   ;le um bit do ficheiro para o buffer
+int 21h ; read from file...
+
+mov ax, 0
+mov ah, buffer[0]          ;coloca o valor de x na entrada
+mov entrada[0], ah
+
+mov bx, handle
+mov dx, offset buffer
+mov cx, 1
+mov ah, 3fh
+int 21h ; read from file...
+
+mov al, buffer[0]
+mov entrada[1], al          ;coloca o valor de y
+
+mov ax, 0
+
+mov bx, handle
+mov dx, offset buffer
+mov cx, 1
+mov ah, 3fh
+int 21h ; read from file...
+
+mov ax, 0
+mov ah, buffer[0]                 ;coloca o valor de x na saida
+mov saida[0], ah
+
+mov bx, handle
+mov dx, offset buffer
+mov cx, 1
+mov ah, 3fh
+int 21h ; read from file...
+
+mov al, buffer[0]
+mov saida[1], al              ;coloca o valor de y na saida
+
+call drawLab            ;desenhar o labirinto                             ;
+call putSmile           ;put o smile no labirinto
+GOTOXY 6,1
+
+PRINT "Time:"
+
+mov ax, 0
+mov cx, 0
+mov dx, 0
+
+mov ah, 2Ch
+int 21h
+
+mov lastSec, dh
+
+GameLoop:
+;verificar tempo
+jmp checkTime
+;mov the Smile
+;Check is exist a keystroke on the buffer
+continueLoop:mov ax, 0
+mov ah, 1
+int 16h
+jz GameLoop ;Not exist
+;Exist
+;get an keyboard Event
+mov ax, 0
+int 16h
+cmp ah, left
+jz movL
+cmp ah, right
+jz movR
+cmp ah, up
+jz movU
+cmp ah, down
+jz movD
+jmp fim ; jump to 'fim' to escape move Left
+
+movL:    cmp player[0], 1
+jle fim
+mov cx, 0
+mov cl, player[1]
+add ch, player[0]
+dec ch
+add ch, 5
+add cl, 5
+
+; Clean the reg
+mov ax, 0
+push bx
+mov bx, 0
+
+GOTOXY ch ,cl
+
+mov ah, 08h
+int 10h
+
+mov bx, 0
+pop bx
+cmp al, 00h
+jnz fim ; if it's not a zero jump to 'fim'
+
+; if it's '0' remove the face in the current position and put a face in the wanted position
+PUTC 02h
+inc ch
+GOTOXY ch, cl
+PUTC 0h
+sub ch, 6
+mov player[0], ch
+jmp fim ; jump to 'fim' to escape move Right
+
+movR:    cmp player[0], bh
+jge fim
+mov cx, 0
+mov cl, player[1]
+add ch, player[0]
+inc ch
+add ch, 5
+add cl, 5
+
+; Clean the reg
+mov ax, 0
+push bx
+mov bx, 0
+
+GOTOXY ch ,cl
+
+mov ah, 08h
+int 10h
+
+mov bx, 0
+pop bx
+cmp al, 00h; verify if the wanted position is NULL
+jnz fim; if it's not zero jump to 'fim'
+
+; if it's '0' remove the face in the current position and put a face in the wanted position
+PUTC 02h
+dec ch
+GOTOXY ch, cl
+PUTC 0h
+sub ch, 4
+mov player[0], ch
+jmp fim ; jump to 'fim' to escape move Up
+
+movU:    mov cx, 0
+mov cl, player[1]
+dec cl
+add ch, player[0]
+add ch, 5
+add cl, 5
+
+; Clean the reg
+mov ax, 0
+push bx
+mov bx, 0
+
+GOTOXY ch ,cl
+
+mov ah, 08h
+int 10h
+
+mov bx, 0
+pop bx
+cmp al, 00h; verify if the wanted position is '0'
+jnz fim; if it's not a zero jump to 'fim'
+
+; if it's '0' remove the face in the current position and put a face in the wanted position
+PUTC 02h
+inc cl
+GOTOXY ch, cl
+PUTC 0h
+sub cl, 6
+mov player[1], cl
+jmp fim ; jump to 'fim' to escape move Down
+
+movD:    mov cx, 0
+mov cl, player[1]
+inc cl
+add ch, player[0]
+add ch, 5
+add cl, 5
+
+; Clean the reg
+mov ax, 0
+push bx
+mov bx, 0
+
+GOTOXY ch ,cl
+
+mov ah, 08h
+int 10h
+
+mov bx, 0
+pop bx
+cmp al, 00h; verify if the wanted position is '0'
+jnz fim; if it's not a zero jump to 'fim'
+
+; if it's '0' remove the face in the current position and put a face in the wanted position
+PUTC 02h
+dec cl
+GOTOXY ch, cl
+PUTC 0h
+sub cl, 4
+mov player[1], cl
+fim:     mov ax, 0
+mov ah, player[0]
+mov al, player[1]
+cmp ah, saida[0]
+jnz fim2
+cmp al, saida[1]
+jnz fim2
+inc currlevel
+jmp nivelesc
+fim2:    jmp GameLoop
+LostTag: mov lost, 1         ; Variavel boleana para ver se perdeu ou ganhou
+EndGame: ;just finish the game
+mov bx, 0
+mov ax, 0
+mov ah, 03Eh
+mov bx, handle
+int 21h
+clearBuffer:
+mov ax, 0
+mov ah, 1
+int 16h
+jz fim_prog ;Not exist word in the key buffer
+;Exist
+;get an keyboard Event
+mov ax, 0
+int 16h
+jmp clearBuffer
+fim_prog:
+mov ax, 0
+mov ah, 06h
+mov bh, 0111b
+mov bl, 0              ; limpar o ecra
+mov cx, 0
+mov dx, 184Fh
+int 10h
+cmp lost, 1
+je txtlost
+GOTOXY 25,5
+PRINT "Voce ganhou!!! Uau "
+PUTC 01h
+PUTC 02h
+jmp pressKey
+txtlost:
+GOTOXY 25,5
+PRINT "Voce perdeu!!! ooohhh :("
+
+pressKey:
+GOTOXY 25,6
+PRINT "Pressione uma tecla..."
+mov ax, 0
+int 16h
+
+mov ax, 0
+mov ah, 06h
+mov bh, 0111b           ; limpar o ecra
+mov bl, 0
+mov cx, 0
+mov dx, 184Fh
+int 10h
+ret
+
+drawLab:
+mov ax, 0
+
+mov bx, handle
+mov dx, offset buffer
+mov cx, 2
+mov ah, 3fh
+int 21h ; read from file...
+
+mov ax, 0
+
+mov bh,buffer[0]    ;column
+mov bl,buffer[1]    ;row
+mov al, bh
+mul bl   ;tamanho total do labirinto
+mov cx, ax
+mov ax, 0
+mov dx, 0
+push bx
+push cx
+mov bx, handle
+mov cx, 0
+mov dx, 6
+mov ah, 42h
+int 21h
+pop cx
+pop bx
+mov ax, 0
+mov dx, 0
+mov si, 0
+mov ax, 0
+mov ah, 1
+mov al, 1
+add ah, 5
+add al, 5
+add ah, dh
+add al, dl
+mov w, ah
+mov h, al
+GOTOXY w, h
+Imprimir:
+mov ax, 0
+push bx
+push cx
+push dx
+mov ax, 0
+mov bx, handle
+mov dx, offset buffer
+mov cx, 1
+mov ah, 3fh
+int 21h ; read from file...
+mov ax, 0
+mov al, buffer[0]
+cmp al , 30h
+jne Pass
+mov al, 0h
+Pass:   mov loadNivel[si], al
+pop dx
+pop cx
+pop bx
+inc si              ;Para comparar se o que esta no buffer e 0 e se for 0 mete NULL na variavel loadNivel
+inc dh
+cmp dh,bh
+jnz RetLOOP
+inc dl
+cmp dl, bl
+jnz PLUSROW
+mov loadNivel[si], '$'
+PRINTLAB loadNivel
+RetLOOP:loop Imprimir
+ret
+
+PLUSROW:mov loadNivel[si], '$'
+PRINTLAB loadNivel
+mov si, 0
+mov dh, 0
+mov ah, 1
+mov al, 1
+add ah, 5
+add al, 5     ;ir para a linha seguinte
+add ah, dh
+add al, dl
+mov w, ah
+mov h, al
+GOTOXY w, h
+jmp RetLOOP
+
+
+putSmile:
+mov cx, 0
+mov ch, entrada[0]
+mov cl, entrada[1]
+mov player[0], ch
+mov player[1], cl
+add ch, 5
+add cl, 5
+GOTOXY ch, cl
+PUTC 02h
+ret
+
+checkTime:
+cmp tmpCurr, 0
+jz LostTag
+
+mov ax, 0
+mov cx, 0
+mov dx, 0
+;verificar se ja passou x segundos
+mov ah, 2Ch
+int 21h
+
+mov ax, 0
+
+GOTOXY 12, 1
+
+mov al, dh
+
+cmp lastSec, al
+jle notModule
+
+add al, 60
+
+notModule:      ;salto para nao usar o modulo e imprimir o tempo no ecra
+sub al, lastSec
+
+cmp tmpCurr, ax
+jl LostTag
+
+sub tmpCurr, ax
+
+mov lastSec, dh
+
+mov cx, 0
+mov dx, 0
+
+mov cl, 60
+mov ch, 0Ah
+
+mov ax, tmpCurr
+
+div cl
+
+mov dx, ax
+
+mov ah, 0
+
+div ch
+
+add ah, 30h
+add al, 30h
+
+mov printTmp, al
+
+PUTC printTmp
+
+mov printTmp, ah
+;imprime o tempo em minutos e segundos
+PUTC printTmp
+
+PUTC ':'
+
+mov ax, 0
+mov al, dh
+
+div ch
+
+add ah, 30h
+add al, 30h
+
+mov printTmp, al
+
+PUTC printTmp
+
+mov printTmp, ah
+
+PUTC printTmp
+
+jmp continueLoop
+
+end start
+
+
+
+
+; [SOURCE]: C:\Users\tomas\Desktop\Labirinto\LabHint.asm
