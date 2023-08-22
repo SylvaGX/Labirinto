@@ -1,0 +1,701 @@
+EMU8086 GENERATED LISTING. MACHINE CODE <- SOURCE.
+ 
+LabHint.com -- emu8086 assembler version: 4.08  
+ 
+[ 22/08/2023  --  18:32:48 ] 
+ 
+===================================================================================================
+[LINE]     LOC: MACHINE CODE                          SOURCE
+===================================================================================================
+ 
+[   1]        :                                       ; multi-segment executable file template.
+[   2]        :                                       include Macros.inc
+[   3]        :                                       org 100h
+[   4]        :                                       .model small     ;mudamos as macros para PRINT imprime tudo de uma vez
+[   5]        :                                       .stack 256
+[   6]    0100: EB 5E                                 .data     ;segmento
+[   7]    0102: 00                                    w db 0 ;x
+[   8]    0103: 00                                    h db 0 ;y
+[   9]        :                                       
+[  10]        :                                       
+[  11]        :                                       ;variaveis com nome dos ficheiros que contem o nivel
+[  12]    0104: 6E 69 76 65 6C 31 2E 74 78 74 00      nivel1 DB "nivel1.txt", 0
+[  13]        :                                       
+[  14]    010F: 6E 69 76 65 6C 32 2E 74 78 74 00      nivel2 DB "nivel2.txt", 0
+[  15]        :                                       
+[  16]    011A: 6E 69 76 65 6C 33 2E 74 78 74 00      nivel3 DB "nivel3.txt", 0
+[  17]        :                                       
+[  18]    0125: 01                                    currlevel DB 1 ;o nivel que esta para selecionar o nivel depois
+[  19]        :                                       ;nivel geral
+[  20]    0126: 00 00                                 nivel DW ?    ;fazer o offset de uma das variaveis que contem o nome do ficheiro
+[  21]        :                                       
+[  22]        :                                       ;Tempo limite
+[  23]    0128: 19 00                                 tmp1 DW  25     ;tempo nivel 1 convem correr nos DOSBOX
+[  24]    012A: 32 00                                 tmp2 DW  50
+[  25]    012C: 5A 00                                 tmp3 DW  90
+[  26]    012E: 00 00                                 tmpCurr DW 0   ;tempo corrente
+[  27]    0130: 00                                    lastSec DB 0    ;guarda os segundos
+[  28]    0131: 00                                    printTmp DB 0  ;imprime o tempo
+[  29]        :                                       
+[  30]    0132: 00                                    lost DB 0    ;variavel para saber se perdeu o jogo
+[  31]        :                                       
+[  32]    0133: 00 00 00 00 00 00 00 00 00 00 00 00   loadNivel DB 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00    
+[  33]        :                                       
+[  34]    0156: 00                                    posMenu DB 0   ;saber que posicao do menu esta
+[  35]        :                                       
+[  36]    0157: 00 00                                 handle DW ?
+[  37]        :                                       
+[  38]    0159: 00                                    buffer DB 0
+[  39]        :                                       
+[  40]        :                                       ;x, y, fim de array
+[  41]    015A: 00 00                                 player DB 0, 0
+[  42]        :                                       
+[  43]        :                                       ;x, y, fim de array
+[  44]    015C: 01 01                                 entrada DB 1, 1
+[  45]        :                                       
+[  46]        :                                       ;x, y, fim de array
+[  47]    015E: 14 01                                 saida DB 20, 1
+[  48]        :                                       
+[  49]        :                                       ;Direction constants:
+[  50]        :                                       left equ 4bh
+[  51]        :                                       right equ 4dh
+[  52]        :                                       up equ 48h
+[  53]        :                                       down equ 50h
+[  54]        :                                       
+[  55]    0160:                                       .code
+[  56]    0160:                                       start:
+[  57]    0160: 8C C8                                 mov ax, @data
+[  58]    0162: 8E D8                                 mov ds, ax
+[  59]        :                                       
+[  60]    0164: B4 00                                 	mov ah, 0h
+[  61]    0166: B0 03                                 	mov al, 03h
+[  62]    0168: CD 10                                 	int 10h
+[  63]        :                                       	
+[  64]    016A: 50 51 B4 01 B5 28 B1 09 CD 10 59 58   	CURSOROFF  ;e tira o cursor
+                                                    
+[  65]        :                                       	
+[  66]    0176: 50 53 52 B4 02 B6 05 B2 19 B7 00 CD   GOTOXY 25, 5
+                10 5A 5B 58                         
+[  67]    0186: 50 52 EB 08 4C 61 62 48 69 6E 74 24   PRINT "LabHint"
+                BA 8A 01 B4 09 CD 21 5A 58          
+[  68]    019B: 50 53 52 B4 02 B6 07 B2 19 B7 00 CD   GOTOXY 25,7
+                10 5A 5B 58                         
+[  69]    01AB: 50 52 EB 06 4A 6F 67 61 72 24 BA AF   PRINT "Jogar"
+                01 B4 09 CD 21 5A 58                
+[  70]    01BE: 50 53 52 B4 02 B6 08 B2 19 B7 00 CD   GOTOXY 25,8
+                10 5A 5B 58                         
+[  71]    01CE: 50 52 EB 05 53 61 69 72 24 BA D2 01   PRINT "Sair"
+                B4 09 CD 21 5A 58                   
+[  72]    01E0: 50 53 52 B4 02 B6 07 B2 16 B7 00 CD   GOTOXY 22, 7
+                10 5A 5B 58                         
+[  73]    01F0: 50 52 EB 03 2D 3E 24 BA F4 01 B4 09   PRINT "->"
+                CD 21 5A 58                         
+[  74]    0200:                                       MenuLoop:
+[  75]    0200: B8 00 00                              mov ax, 0
+[  76]    0203: CD 16                                 int 16h
+[  77]    0205: 3C 0D                                 cmp al, 0Dh
+[  78]    0207: 75 03 E9 A1 00                        jz menuOption    ;saber se clicou no enter setinha para cima ou setinha para  baixo
+[  79]    020C: 80 FC 50                              cmp ah, down
+[  80]    020F: 74 07                                 jz menuDown
+[  81]    0211: 80 FC 48                              cmp ah, up
+[  82]    0214: 74 18                                 jz menuUp
+[  83]    0216: EB E8                                 jmp MenuLoop
+[  84]        :                                       
+[  85]    0218:                                       menuDown:                         ;setinha para baixo
+[  86]    0218: E8 5F 00                              call RemoveSeta
+[  87]    021B: 80 3E 56 01 01                        cmp posMenu, 1           ;compara a posicao para ver se e igual a 1,se for decrementa senao incrementa
+[  88]    0220: 74 06                                 je menuDownDec
+[  89]    0222: FE 06 56 01                           inc posMenu              ;aumenta
+[  90]    0226: EB 1A                                 jmp menusPrint
+[  91]    0228:                                       menuDownDec:
+[  92]    0228: FE 0E 56 01                           dec posMenu              ;diminui a posicao
+[  93]    022C: EB 14                                 jmp menusPrint
+[  94]        :                                       
+[  95]    022E:                                       menuUp:
+[  96]    022E: E8 49 00                              call RemoveSeta
+[  97]    0231: 80 3E 56 01 00                        cmp posMenu, 0
+[  98]    0236: 74 06                                 je  menuUpInc
+[  99]    0238: FE 0E 56 01                           dec posMenu
+[ 100]    023C: EB 04                                 jmp menusPrint
+[ 101]    023E:                                       menuUpInc:
+[ 102]    023E: FE 06 56 01                           inc posMenu
+[ 103]        :                                       
+[ 104]    0242:                                       menusPrint:
+[ 105]    0242: E8 02 00                              call PrintSeta    ;imprimir a seta e voltar ao loop
+[ 106]    0245: EB B9                                 jmp MenuLoop
+[ 107]        :                                       
+[ 108]    0247:                                       PrintSeta:
+[ 109]    0247: BB 00 00                              mov bx, 0
+[ 110]    024A: 8A 1E 56 01                           mov bl, posMenu
+[ 111]    024E: C6 06 03 01 07                        mov h, 7              ;imprime a seta
+[ 112]    0253: 00 1E 03 01                           add h, bl
+[ 113]    0257: 50 53 52 B4 02 8A 36 03 01 B2 16 B7   GOTOXY 22, h
+                00 CD 10 5A 5B 58                   
+[ 114]    0269: 50 52 EB 03 2D 3E 24 BA 6D 02 B4 09   PRINT "->"
+                CD 21 5A 58                         
+[ 115]    0279: C3                                    ret
+[ 116]        :                                       
+[ 117]    027A:                                       RemoveSeta:
+[ 118]    027A: BB 00 00                              mov bx, 0
+[ 119]    027D: 8A 1E 56 01                           mov bl, posMenu
+[ 120]    0281: C6 06 03 01 07                        mov h, 7                ;remove
+[ 121]    0286: 00 1E 03 01                           add h, bl
+[ 122]    028A: 50 53 52 B4 02 8A 36 03 01 B2 16 B7   GOTOXY 22, h
+                00 CD 10 5A 5B 58                   
+[ 123]    029C: 50 52 EB 03 20 20 24 BA A0 02 B4 09   PRINT "  "
+                CD 21 5A 58                         
+[ 124]    02AC: C3                                    ret
+[ 125]        :                                       
+[ 126]    02AD:                                       menuOption:
+[ 127]    02AD: 80 3E 56 01 00                        cmp posMenu, 0          ; compara a posiçao do menu e se for 0 vai escolhe o nivel
+[ 128]    02B2: 74 12                                 jz nivelesc
+[ 129]    02B4: B8 00 00                              mov ax, 0
+[ 130]    02B7: B4 06                                 mov ah, 06h
+[ 131]    02B9: B7 07                                 mov bh, 0111b           ; limpar o ecra
+[ 132]    02BB: B3 00                                 mov bl, 0
+[ 133]    02BD: B9 00 00                              mov cx, 0
+[ 134]    02C0: BA 4F 18                              mov dx, 184Fh ;limite maximo  de colunas
+[ 135]    02C3: CD 10                                 int 10h
+[ 136]    02C5: C3                                    ret
+[ 137]        :                                       
+[ 138]    02C6:                                       nivelesc:
+[ 139]        :                                       
+[ 140]    02C6: 80 3E 25 01 01                        cmp currlevel,1
+[ 141]    02CB: 74 11                                 	jz  selnivel1
+[ 142]    02CD: 80 3E 25 01 02                        	cmp currlevel,2
+[ 143]    02D2: 74 1E                                 	jz  selnivel2
+[ 144]    02D4: 80 3E 25 01 03                        cmp currlevel,3            ;escolhe o nivel dependo do valor da variavel
+[ 145]    02D9: 74 2B                                 	jz  selnivel3
+[ 146]    02DB: E9 F5 02                              jmp EndGame
+[ 147]        :                                       
+[ 148]    02DE:                                       selnivel1:
+[ 149]        :                                       
+[ 150]    02DE: BB 04 01                              mov bx, offset nivel1
+[ 151]    02E1: 89 1E 26 01                           mov nivel, bx
+[ 152]    02E5: BB 00 00                              mov bx, 0                ;copia o offset e dps coloca na variavel nivel,dps soma o tempo do nivel ao que esta na variavel
+[ 153]    02E8: 8B 1E 28 01                           mov bx, tmp1[0]
+[ 154]    02EC: 01 1E 2E 01                           add tmpCurr[0], bx
+[ 155]    02F0: EB 26                                 jmp play
+[ 156]        :                                       
+[ 157]    02F2:                                       selnivel2:
+[ 158]        :                                       
+[ 159]    02F2: BB 0F 01                              mov bx, offset nivel2
+[ 160]    02F5: 89 1E 26 01                           mov nivel, bx
+[ 161]    02F9: BB 00 00                              mov bx, 0
+[ 162]    02FC: 8B 1E 2A 01                           mov bx, tmp2[0]
+[ 163]    0300: 01 1E 2E 01                           add tmpCurr[0], bx
+[ 164]    0304: EB 12                                 jmp play
+[ 165]        :                                       
+[ 166]    0306:                                       selnivel3:
+[ 167]        :                                       
+[ 168]    0306: BB 1A 01                              mov bx, offset nivel3
+[ 169]    0309: 89 1E 26 01                           mov nivel, bx
+[ 170]    030D: BB 00 00                              mov bx, 0
+[ 171]    0310: 8B 1E 2C 01                           mov bx, tmp3[0]
+[ 172]    0314: 01 1E 2E 01                           add tmpCurr[0], bx
+[ 173]        :                                       
+[ 174]        :                                       
+[ 175]    0318:                                       play:
+[ 176]    0318: B8 00 00                              mov ax, 0
+[ 177]    031B: B4 06                                 mov ah, 06h
+[ 178]    031D: B7 07                                 mov bh, 0111b  ;limpar o ecra
+[ 179]    031F: B3 00                                 mov bl, 0
+[ 180]    0321: B9 00 00                              mov cx, 0
+[ 181]    0324: BA 4F 18                              mov dx, 184Fh
+[ 182]    0327: CD 10                                 	int 10h
+[ 183]        :                                       	
+[ 184]    0329: B0 00                                 	mov al, 0
+[ 185]    032B: 8B 16 26 01                           	mov dx, nivel
+[ 186]    032F: B4 3D                                 	mov ah, 3dh
+[ 187]    0331: CD 21                                 	int 21h               ; Abre o ficheiro que esta no nivel     (que e um offset)
+[ 188]    0333: A3 57 01                              	mov handle, ax
+[ 189]        :                                       	
+[ 190]    0336: B0 00                                 	mov al, 0
+[ 191]    0338: 8B 1E 57 01                           	mov bx, handle
+[ 192]    033C: B9 00 00                              	mov cx, 0              ; Ir para a a posicao 0, 0 do ficheiro
+[ 193]    033F: BA 00 00                              	mov dx, 0
+[ 194]    0342: B4 42                                 	mov ah, 42h
+[ 195]    0344: CD 21                                 	int 21h
+[ 196]        :                                       	
+[ 197]    0346: 8B 1E 57 01                           	mov bx, handle
+[ 198]    034A: BA 59 01                              	mov dx, offset buffer
+[ 199]    034D: B9 01 00                              	mov cx, 1
+[ 200]    0350: B4 3F                                 	mov ah, 3fh                   ;le um bit do ficheiro para o buffer
+[ 201]    0352: CD 21                                 	int 21h ; read from file...
+[ 202]        :                                       	
+[ 203]    0354: B8 00 00                              	mov ax, 0
+[ 204]    0357: 8A 26 59 01                           	mov ah, buffer[0]          ;coloca o valor de x na entrada
+[ 205]    035B: 88 26 5C 01                           	mov entrada[0], ah
+[ 206]        :                                       	
+[ 207]    035F: 8B 1E 57 01                           	mov bx, handle
+[ 208]    0363: BA 59 01                              	mov dx, offset buffer
+[ 209]    0366: B9 01 00                              	mov cx, 1
+[ 210]    0369: B4 3F                                 	mov ah, 3fh
+[ 211]    036B: CD 21                                 	int 21h ; read from file...
+[ 212]        :                                       	
+[ 213]    036D: A0 59 01                              	mov al, buffer[0]
+[ 214]    0370: A2 5D 01                              	mov entrada[1], al          ;coloca o valor de y
+[ 215]        :                                       	
+[ 216]    0373: B8 00 00                              	mov ax, 0
+[ 217]        :                                       	
+[ 218]    0376: 8B 1E 57 01                           	mov bx, handle
+[ 219]    037A: BA 59 01                              	mov dx, offset buffer
+[ 220]    037D: B9 01 00                              	mov cx, 1
+[ 221]    0380: B4 3F                                 	mov ah, 3fh
+[ 222]    0382: CD 21                                 	int 21h ; read from file...
+[ 223]        :                                       	
+[ 224]    0384: B8 00 00                              	mov ax, 0
+[ 225]    0387: 8A 26 59 01                           	mov ah, buffer[0]                 ;coloca o valor de x na saida
+[ 226]    038B: 88 26 5E 01                           	mov saida[0], ah
+[ 227]        :                                       	
+[ 228]    038F: 8B 1E 57 01                           	mov bx, handle
+[ 229]    0393: BA 59 01                              	mov dx, offset buffer
+[ 230]    0396: B9 01 00                              	mov cx, 1
+[ 231]    0399: B4 3F                                 	mov ah, 3fh
+[ 232]    039B: CD 21                                 	int 21h ; read from file...
+[ 233]        :                                       	
+[ 234]    039D: A0 59 01                              	mov al, buffer[0]
+[ 235]    03A0: A2 5F 01                              	mov saida[1], al              ;coloca o valor de y na saida
+[ 236]        :                                       
+[ 237]    03A3: E8 27 03                              call drawLab            ;desenhar o labirinto                             ;
+[ 238]    03A6: E8 1B 04                              call putSmile           ;put o smile no labirinto
+[ 239]    03A9: 50 53 52 B4 02 B6 01 B2 06 B7 00 CD   GOTOXY 6,1
+                10 5A 5B 58                         
+[ 240]        :                                       
+[ 241]    03B9: 50 52 EB 06 54 69 6D 65 3A 24 BA BD   PRINT "Time:"
+                03 B4 09 CD 21 5A 58                
+[ 242]        :                                       
+[ 243]    03CC: B8 00 00                              mov ax, 0
+[ 244]    03CF: B9 00 00                              mov cx, 0
+[ 245]    03D2: BA 00 00                              mov dx, 0
+[ 246]        :                                       
+[ 247]    03D5: B4 2C                                 mov ah, 2Ch
+[ 248]    03D7: CD 21                                 int 21h
+[ 249]        :                                       
+[ 250]    03D9: 88 36 30 01                           mov lastSec, dh
+[ 251]        :                                       
+[ 252]    03DD:                                       GameLoop:
+[ 253]        :                                       ;verificar tempo
+[ 254]    03DD: E9 16 04                              jmp checkTime
+[ 255]        :                                       ;mov the Smile
+[ 256]        :                                       ;Check is exist a keystroke on the buffer
+[ 257]    03E0: B8 00 00                              continueLoop:mov ax, 0
+[ 258]    03E3: B4 01                                 mov ah, 1
+[ 259]    03E5: CD 16                                 int 16h
+[ 260]    03E7: 74 F4                                 jz GameLoop ;Not exist
+[ 261]        :                                       ;Exist
+[ 262]        :                                       ;get an keyboard Event
+[ 263]    03E9: B8 00 00                              mov ax, 0
+[ 264]    03EC: CD 16                                 int 16h
+[ 265]    03EE: 80 FC 4B                              cmp ah, left
+[ 266]    03F1: 74 1B                                 	 jz movL
+[ 267]    03F3: 80 FC 4D                              	 cmp ah, right
+[ 268]    03F6: 75 03 E9 82 00                        jz movR
+[ 269]    03FB: 80 FC 48                              	     cmp ah, up
+[ 270]    03FE: 75 03 E9 E8 00                        	     jz movU
+[ 271]    0403: 80 FC 50                              	 cmp ah, down
+[ 272]    0406: 75 03 E9 44 01                        	 jz movD
+[ 273]    040B: E9 A0 01                              	 jmp fim ; jump to 'fim' to escape move Left
+[ 274]        :                                       	
+[ 275]    040E: 80 3E 5A 01 01                        movL:    cmp player[0], 1
+[ 276]    0413: 7F 03 E9 96 01                        jle fim
+[ 277]    0418: B9 00 00                              mov cx, 0
+[ 278]    041B: 8A 0E 5B 01                           mov cl, player[1]
+[ 279]    041F: 02 2E 5A 01                           add ch, player[0]
+[ 280]    0423: FE CD                                 dec ch
+[ 281]    0425: 80 C5 05                              add ch, 5
+[ 282]    0428: 80 C1 05                              add cl, 5
+[ 283]        :                                       
+[ 284]        :                                       ; Clean the reg
+[ 285]    042B: B8 00 00                              mov ax, 0
+[ 286]    042E: 53                                    push bx
+[ 287]    042F: BB 00 00                              mov bx, 0
+[ 288]        :                                       
+[ 289]    0432: 50 53 52 B4 02 8A F1 8A D5 B7 00 CD   GOTOXY ch ,cl
+                10 5A 5B 58                         
+[ 290]        :                                       
+[ 291]    0442: B4 08                                 mov ah, 08h
+[ 292]    0444: CD 10                                 int 10h
+[ 293]        :                                       
+[ 294]    0446: BB 00 00                              mov bx, 0
+[ 295]    0449: 5B                                    pop bx
+[ 296]    044A: 3C 00                                 cmp al, 00h
+[ 297]    044C: 74 03 E9 5D 01                        jnz fim ; if it's not a zero jump to 'fim'
+[ 298]        :                                       
+[ 299]        :                                       ; if it's '0' remove the face in the current position and put a face in the wanted position
+[ 300]    0451: 50 B0 02 B4 0E CD 10 58               PUTC 02h
+[ 301]    0459: FE C5                                 inc ch
+[ 302]    045B: 50 53 52 B4 02 8A F1 8A D5 B7 00 CD   GOTOXY ch, cl
+                10 5A 5B 58                         
+[ 303]    046B: 50 B0 00 B4 0E CD 10 58               PUTC 0h
+[ 304]    0473: 80 ED 06                              sub ch, 6
+[ 305]    0476: 88 2E 5A 01                           mov player[0], ch
+[ 306]    047A: E9 31 01                              jmp fim ; jump to 'fim' to escape move Right
+[ 307]        :                                       
+[ 308]    047D: 38 3E 5A 01                           movR:    cmp player[0], bh
+[ 309]    0481: 7C 03 E9 28 01                        jge fim
+[ 310]    0486: B9 00 00                              mov cx, 0
+[ 311]    0489: 8A 0E 5B 01                           mov cl, player[1]
+[ 312]    048D: 02 2E 5A 01                           add ch, player[0]
+[ 313]    0491: FE C5                                 inc ch
+[ 314]    0493: 80 C5 05                              add ch, 5
+[ 315]    0496: 80 C1 05                              add cl, 5
+[ 316]        :                                       
+[ 317]        :                                       ; Clean the reg
+[ 318]    0499: B8 00 00                              mov ax, 0
+[ 319]    049C: 53                                    push bx
+[ 320]    049D: BB 00 00                              mov bx, 0
+[ 321]        :                                       
+[ 322]    04A0: 50 53 52 B4 02 8A F1 8A D5 B7 00 CD   GOTOXY ch ,cl
+                10 5A 5B 58                         
+[ 323]        :                                       
+[ 324]    04B0: B4 08                                 mov ah, 08h
+[ 325]    04B2: CD 10                                 int 10h
+[ 326]        :                                       
+[ 327]    04B4: BB 00 00                              mov bx, 0
+[ 328]    04B7: 5B                                    pop bx
+[ 329]    04B8: 3C 00                                 cmp al, 00h; verify if the wanted position is NULL
+[ 330]    04BA: 74 03 E9 EF 00                        jnz fim; if it's not zero jump to 'fim'
+[ 331]        :                                       
+[ 332]        :                                       ; if it's '0' remove the face in the current position and put a face in the wanted position
+[ 333]    04BF: 50 B0 02 B4 0E CD 10 58               PUTC 02h
+[ 334]    04C7: FE CD                                 dec ch
+[ 335]    04C9: 50 53 52 B4 02 8A F1 8A D5 B7 00 CD   GOTOXY ch, cl
+                10 5A 5B 58                         
+[ 336]    04D9: 50 B0 00 B4 0E CD 10 58               PUTC 0h
+[ 337]    04E1: 80 ED 04                              sub ch, 4
+[ 338]    04E4: 88 2E 5A 01                           mov player[0], ch
+[ 339]    04E8: E9 C3 00                              jmp fim ; jump to 'fim' to escape move Up
+[ 340]        :                                       
+[ 341]    04EB: B9 00 00                              movU:    mov cx, 0
+[ 342]    04EE: 8A 0E 5B 01                           mov cl, player[1]
+[ 343]    04F2: FE C9                                 dec cl
+[ 344]    04F4: 02 2E 5A 01                           add ch, player[0]
+[ 345]    04F8: 80 C5 05                              add ch, 5
+[ 346]    04FB: 80 C1 05                              add cl, 5
+[ 347]        :                                       
+[ 348]        :                                       ; Clean the reg
+[ 349]    04FE: B8 00 00                              mov ax, 0
+[ 350]    0501: 53                                    push bx
+[ 351]    0502: BB 00 00                              mov bx, 0
+[ 352]        :                                       
+[ 353]    0505: 50 53 52 B4 02 8A F1 8A D5 B7 00 CD   GOTOXY ch ,cl
+                10 5A 5B 58                         
+[ 354]        :                                       
+[ 355]    0515: B4 08                                 mov ah, 08h
+[ 356]    0517: CD 10                                 int 10h
+[ 357]        :                                       
+[ 358]    0519: BB 00 00                              mov bx, 0
+[ 359]    051C: 5B                                    pop bx
+[ 360]    051D: 3C 00                                 cmp al, 00h; verify if the wanted position is '0'
+[ 361]    051F: 74 03 E9 8A 00                        jnz fim; if it's not a zero jump to 'fim'
+[ 362]        :                                       
+[ 363]        :                                       ; if it's '0' remove the face in the current position and put a face in the wanted position
+[ 364]    0524: 50 B0 02 B4 0E CD 10 58               PUTC 02h
+[ 365]    052C: FE C1                                 inc cl
+[ 366]    052E: 50 53 52 B4 02 8A F1 8A D5 B7 00 CD   GOTOXY ch, cl
+                10 5A 5B 58                         
+[ 367]    053E: 50 B0 00 B4 0E CD 10 58               PUTC 0h
+[ 368]    0546: 80 E9 06                              sub cl, 6
+[ 369]    0549: 88 0E 5B 01                           mov player[1], cl
+[ 370]    054D: EB 5F                                 jmp fim ; jump to 'fim' to escape move Down
+[ 371]        :                                       
+[ 372]    054F: B9 00 00                              movD:    mov cx, 0
+[ 373]    0552: 8A 0E 5B 01                           mov cl, player[1]
+[ 374]    0556: FE C1                                 inc cl
+[ 375]    0558: 02 2E 5A 01                           add ch, player[0]
+[ 376]    055C: 80 C5 05                              add ch, 5
+[ 377]    055F: 80 C1 05                              add cl, 5
+[ 378]        :                                       
+[ 379]        :                                       ; Clean the reg
+[ 380]    0562: B8 00 00                              mov ax, 0
+[ 381]    0565: 53                                    push bx
+[ 382]    0566: BB 00 00                              mov bx, 0
+[ 383]        :                                       
+[ 384]    0569: 50 53 52 B4 02 8A F1 8A D5 B7 00 CD   GOTOXY ch ,cl
+                10 5A 5B 58                         
+[ 385]        :                                       
+[ 386]    0579: B4 08                                 mov ah, 08h
+[ 387]    057B: CD 10                                 int 10h
+[ 388]        :                                       
+[ 389]    057D: BB 00 00                              mov bx, 0
+[ 390]    0580: 5B                                    pop bx
+[ 391]    0581: 3C 00                                 cmp al, 00h; verify if the wanted position is '0'
+[ 392]    0583: 75 29                                 jnz fim; if it's not a zero jump to 'fim'
+[ 393]        :                                       
+[ 394]        :                                       ; if it's '0' remove the face in the current position and put a face in the wanted position
+[ 395]    0585: 50 B0 02 B4 0E CD 10 58               PUTC 02h
+[ 396]    058D: FE C9                                 dec cl
+[ 397]    058F: 50 53 52 B4 02 8A F1 8A D5 B7 00 CD   GOTOXY ch, cl
+                10 5A 5B 58                         
+[ 398]    059F: 50 B0 00 B4 0E CD 10 58               PUTC 0h
+[ 399]    05A7: 80 E9 04                              sub cl, 4
+[ 400]    05AA: 88 0E 5B 01                           mov player[1], cl	
+[ 401]    05AE: B8 00 00                              fim:     mov ax, 0
+[ 402]    05B1: 8A 26 5A 01                           mov ah, player[0]
+[ 403]    05B5: A0 5B 01                              mov al, player[1]
+[ 404]    05B8: 3A 26 5E 01                           cmp ah, saida[0]
+[ 405]    05BC: 75 0D                                 jnz fim2
+[ 406]    05BE: 3A 06 5F 01                           cmp al, saida[1]
+[ 407]    05C2: 75 07                                 jnz fim2
+[ 408]    05C4: FE 06 25 01                           inc currlevel
+[ 409]    05C8: E9 FB FC                              jmp nivelesc
+[ 410]    05CB: E9 0F FE                              fim2:    jmp GameLoop
+[ 411]    05CE: C6 06 32 01 01                        LostTag: mov lost, 1         ; Variavel boleana para ver se perdeu ou ganhou
+[ 412]    05D3:                                       EndGame: ;just finish the game
+[ 413]    05D3: BB 00 00                              mov bx, 0
+[ 414]    05D6: B8 00 00                              mov ax, 0
+[ 415]    05D9: B4 3E                                 mov ah, 03Eh
+[ 416]    05DB: 8B 1E 57 01                           mov bx, handle
+[ 417]    05DF: CD 21                                 int 21h
+[ 418]    05E1:                                       clearBuffer:
+[ 419]    05E1: B8 00 00                              mov ax, 0
+[ 420]    05E4: B4 01                                 mov ah, 1
+[ 421]    05E6: CD 16                                 int 16h
+[ 422]    05E8: 74 07                                 jz fim_prog ;Not exist word in the key buffer
+[ 423]        :                                       ;Exist
+[ 424]        :                                       ;get an keyboard Event
+[ 425]    05EA: B8 00 00                              mov ax, 0
+[ 426]    05ED: CD 16                                 int 16h
+[ 427]    05EF: EB F0                                 jmp clearBuffer
+[ 428]    05F1:                                       fim_prog:
+[ 429]    05F1: B8 00 00                              mov ax, 0
+[ 430]    05F4: B4 06                                 mov ah, 06h
+[ 431]    05F6: B7 07                                 mov bh, 0111b
+[ 432]    05F8: B3 00                                 mov bl, 0              ; limpar o ecra
+[ 433]    05FA: B9 00 00                              mov cx, 0
+[ 434]    05FD: BA 4F 18                              mov dx, 184Fh
+[ 435]    0600: CD 10                                 	int 10h
+[ 436]    0602: 80 3E 32 01 01                        	cmp lost, 1
+[ 437]    0607: 74 43                                 	je txtlost
+[ 438]    0609: 50 53 52 B4 02 B6 05 B2 19 B7 00 CD   	GOTOXY 25,5
+                10 5A 5B 58                         
+[ 439]    0619: 50 52 EB 14 56 6F 63 65 20 67 61 6E   	PRINT "Voce ganhou!!! Uau "
+                68 6F 75 21 21 21 20 55 61 75 20 24 
+                BA 1D 06 B4 09 CD 21 5A 58          
+[ 440]    063A: 50 B0 01 B4 0E CD 10 58               	PUTC 01h
+[ 441]    0642: 50 B0 02 B4 0E CD 10 58               	PUTC 02h
+[ 442]    064A: EB 36                                 	jmp pressKey
+[ 443]    064C:                                       txtlost:
+[ 444]    064C: 50 53 52 B4 02 B6 05 B2 19 B7 00 CD   GOTOXY 25,5
+                10 5A 5B 58                         
+[ 445]    065C: 50 52 EB 19 56 6F 63 65 20 70 65 72   	PRINT "Voce perdeu!!! ooohhh :("
+                64 65 75 21 21 21 20 6F 6F 6F 68 68 
+                68 20 3A 28 24 BA 60 06 B4 09 CD 21 
+                5A 58                               
+[ 446]        :                                       
+[ 447]    0682:                                       pressKey:
+[ 448]    0682: 50 53 52 B4 02 B6 06 B2 19 B7 00 CD   GOTOXY 25,6
+                10 5A 5B 58                         
+[ 449]    0692: 50 52 EB 17 50 72 65 73 73 69 6F 6E   PRINT "Pressione uma tecla..."
+                65 20 75 6D 61 20 74 65 63 6C 61 2E 
+                2E 2E 24 BA 96 06 B4 09 CD 21 5A 58 
+                                                    
+[ 450]    06B6: B8 00 00                              mov ax, 0
+[ 451]    06B9: CD 16                                 int 16h
+[ 452]        :                                       
+[ 453]    06BB: B8 00 00                              mov ax, 0
+[ 454]    06BE: B4 06                                 mov ah, 06h
+[ 455]    06C0: B7 07                                 mov bh, 0111b           ; limpar o ecra
+[ 456]    06C2: B3 00                                 mov bl, 0
+[ 457]    06C4: B9 00 00                              mov cx, 0
+[ 458]    06C7: BA 4F 18                              mov dx, 184Fh
+[ 459]    06CA: CD 10                                 	int 10h
+[ 460]    06CC: C3                                    ret
+[ 461]        :                                       
+[ 462]    06CD:                                       drawLab:
+[ 463]    06CD: B8 00 00                              mov ax, 0
+[ 464]        :                                       	
+[ 465]    06D0: 8B 1E 57 01                           	mov bx, handle
+[ 466]    06D4: BA 59 01                              	mov dx, offset buffer
+[ 467]    06D7: B9 02 00                              	mov cx, 2
+[ 468]    06DA: B4 3F                                 	mov ah, 3fh
+[ 469]    06DC: CD 21                                 	int 21h ; read from file...
+[ 470]        :                                       	
+[ 471]    06DE: B8 00 00                              	mov ax, 0
+[ 472]        :                                       	
+[ 473]    06E1: 8A 3E 59 01                           mov bh,buffer[0]    ;column
+[ 474]    06E5: 8A 1E 5A 01                           mov bl,buffer[1]    ;row
+[ 475]    06E9: 8A C7                                 mov al, bh
+[ 476]    06EB: F6 E3                                 mul bl   ;tamanho total do labirinto
+[ 477]    06ED: 8B C8                                 mov cx, ax
+[ 478]    06EF: B8 00 00                              mov ax, 0
+[ 479]    06F2: BA 00 00                              mov dx, 0
+[ 480]    06F5: 53                                    push bx
+[ 481]    06F6: 51                                    push cx
+[ 482]    06F7: 8B 1E 57 01                           	mov bx, handle
+[ 483]    06FB: B9 00 00                              	mov cx, 0
+[ 484]    06FE: BA 06 00                              	mov dx, 6
+[ 485]    0701: B4 42                                 	mov ah, 42h
+[ 486]    0703: CD 21                                 	int 21h
+[ 487]    0705: 59                                    	pop cx
+[ 488]    0706: 5B                                    	pop bx
+[ 489]    0707: B8 00 00                              	mov ax, 0
+[ 490]    070A: BA 00 00                              	mov dx, 0
+[ 491]    070D: BE 00 00                              	mov si, 0
+[ 492]    0710: B8 00 00                              	mov ax, 0
+[ 493]    0713: B4 01                                 mov ah, 1
+[ 494]    0715: B0 01                                 mov al, 1
+[ 495]    0717: 80 C4 05                              add ah, 5
+[ 496]    071A: 04 05                                 add al, 5
+[ 497]    071C: 02 E6                                 add ah, dh
+[ 498]    071E: 02 C2                                 add al, dl
+[ 499]    0720: 88 26 02 01                           mov w, ah
+[ 500]    0724: A2 03 01                              mov h, al
+[ 501]    0727: 50 53 52 B4 02 8A 36 03 01 8A 16 02   GOTOXY w, h
+                01 B7 00 CD 10 5A 5B 58             
+[ 502]    073B:                                       Imprimir:
+[ 503]    073B: B8 00 00                              mov ax, 0
+[ 504]    073E: 53                                    push bx
+[ 505]    073F: 51                                    push cx
+[ 506]    0740: 52                                    push dx
+[ 507]    0741: B8 00 00                              	mov ax, 0
+[ 508]    0744: 8B 1E 57 01                           	mov bx, handle
+[ 509]    0748: BA 59 01                              	mov dx, offset buffer
+[ 510]    074B: B9 01 00                              	mov cx, 1
+[ 511]    074E: B4 3F                                 	mov ah, 3fh
+[ 512]    0750: CD 21                                 	int 21h ; read from file...
+[ 513]    0752: B8 00 00                              	mov ax, 0
+[ 514]    0755: A0 59 01                              	mov al, buffer[0]
+[ 515]    0758: 3C 30                                 	cmp al , 30h
+[ 516]    075A: 75 02                                 	jne Pass
+[ 517]    075C: B0 00                                 mov al, 0h
+[ 518]    075E: 88 84 33 01                           Pass:   mov loadNivel[si], al
+[ 519]    0762: 5A                                    pop dx
+[ 520]    0763: 59                                    	pop cx
+[ 521]    0764: 5B                                    	pop bx
+[ 522]    0765: 46                                    	inc si              ;Para comparar se o que esta no buffer e 0 e se for 0 mete NULL na variavel loadNivel
+[ 523]    0766: FE C6                                 inc dh
+[ 524]    0768: 3A F7                                 cmp dh,bh
+[ 525]    076A: 75 16                                 jnz RetLOOP
+[ 526]    076C: FE C2                                 inc dl
+[ 527]    076E: 3A D3                                 cmp dl, bl
+[ 528]    0770: 75 13                                 jnz PLUSROW
+[ 529]    0772: C6 84 33 01 24                        mov loadNivel[si], '$'
+[ 530]    0777: 50 52 BA 33 01 B4 09 CD 21 5A 58      PRINTLAB loadNivel
+[ 531]    0782: E2 B7                                 RetLOOP:loop Imprimir
+[ 532]    0784: C3                                    ret
+[ 533]        :                                       
+[ 534]    0785: C6 84 33 01 24                        PLUSROW:mov loadNivel[si], '$'
+[ 535]    078A: 50 52 BA 33 01 B4 09 CD 21 5A 58      PRINTLAB loadNivel
+[ 536]    0795: BE 00 00                              mov si, 0
+[ 537]    0798: B6 00                                 mov dh, 0
+[ 538]    079A: B4 01                                 mov ah, 1
+[ 539]    079C: B0 01                                 mov al, 1
+[ 540]    079E: 80 C4 05                              add ah, 5
+[ 541]    07A1: 04 05                                 add al, 5     ;ir para a linha seguinte
+[ 542]    07A3: 02 E6                                 add ah, dh
+[ 543]    07A5: 02 C2                                 add al, dl
+[ 544]    07A7: 88 26 02 01                           mov w, ah
+[ 545]    07AB: A2 03 01                              mov h, al
+[ 546]    07AE: 50 53 52 B4 02 8A 36 03 01 8A 16 02   GOTOXY w, h
+                01 B7 00 CD 10 5A 5B 58             
+[ 547]    07C2: EB BE                                 jmp RetLOOP
+[ 548]        :                                       
+[ 549]        :                                       
+[ 550]    07C4:                                       putSmile:
+[ 551]    07C4: B9 00 00                              mov cx, 0
+[ 552]    07C7: 8A 2E 5C 01                           mov ch, entrada[0]
+[ 553]    07CB: 8A 0E 5D 01                           mov cl, entrada[1]
+[ 554]    07CF: 88 2E 5A 01                           mov player[0], ch
+[ 555]    07D3: 88 0E 5B 01                           mov player[1], cl
+[ 556]    07D7: 80 C5 05                              add ch, 5
+[ 557]    07DA: 80 C1 05                              add cl, 5
+[ 558]    07DD: 50 53 52 B4 02 8A F1 8A D5 B7 00 CD   GOTOXY ch, cl
+                10 5A 5B 58                         
+[ 559]    07ED: 50 B0 02 B4 0E CD 10 58               PUTC 02h
+[ 560]    07F5: C3                                    ret
+[ 561]        :                                       
+[ 562]    07F6:                                       checkTime:
+[ 563]    07F6: 83 3E 2E 01 00                        cmp tmpCurr, 0
+[ 564]    07FB: 75 03 E9 CE FD                        jz LostTag
+[ 565]        :                                       
+[ 566]    0800: B8 00 00                              mov ax, 0
+[ 567]    0803: B9 00 00                              mov cx, 0
+[ 568]    0806: BA 00 00                              mov dx, 0
+[ 569]        :                                       ;verificar se ja passou x segundos
+[ 570]    0809: B4 2C                                 mov ah, 2Ch
+[ 571]    080B: CD 21                                 int 21h
+[ 572]        :                                       
+[ 573]    080D: B8 00 00                              mov ax, 0
+[ 574]        :                                       
+[ 575]    0810: 50 53 52 B4 02 B6 01 B2 0C B7 00 CD   GOTOXY 12, 1
+                10 5A 5B 58                         
+[ 576]        :                                       
+[ 577]    0820: 8A C6                                 mov al, dh
+[ 578]        :                                       
+[ 579]    0822: 38 06 30 01                           cmp lastSec, al
+[ 580]    0826: 7E 02                                 jle notModule
+[ 581]        :                                       
+[ 582]    0828: 04 3C                                 add al, 60
+[ 583]        :                                       
+[ 584]    082A:                                       notModule:      ;salto para nao usar o modulo e imprimir o tempo no ecra
+[ 585]    082A: 2A 06 30 01                           sub al, lastSec
+[ 586]        :                                       
+[ 587]    082E: 39 06 2E 01                           cmp tmpCurr, ax
+[ 588]    0832: 7D 03 E9 97 FD                        jl LostTag
+[ 589]        :                                       
+[ 590]    0837: 29 06 2E 01                           sub tmpCurr, ax
+[ 591]        :                                       
+[ 592]    083B: 88 36 30 01                           mov lastSec, dh
+[ 593]        :                                       
+[ 594]    083F: B9 00 00                              mov cx, 0
+[ 595]    0842: BA 00 00                              mov dx, 0
+[ 596]        :                                       
+[ 597]    0845: B1 3C                                 mov cl, 60
+[ 598]    0847: B5 0A                                 mov ch, 0Ah
+[ 599]        :                                       
+[ 600]    0849: A1 2E 01                              mov ax, tmpCurr
+[ 601]        :                                       
+[ 602]    084C: F6 F1                                 div cl
+[ 603]        :                                       
+[ 604]    084E: 8B D0                                 mov dx, ax
+[ 605]        :                                       
+[ 606]    0850: B4 00                                 mov ah, 0
+[ 607]        :                                       
+[ 608]    0852: F6 F5                                 div ch
+[ 609]        :                                       
+[ 610]    0854: 80 C4 30                              add ah, 30h
+[ 611]    0857: 04 30                                 add al, 30h
+[ 612]        :                                       
+[ 613]    0859: A2 31 01                              mov printTmp, al
+[ 614]        :                                       
+[ 615]    085C: 50 A0 31 01 B4 0E CD 10 58            PUTC printTmp
+[ 616]        :                                       
+[ 617]    0865: 88 26 31 01                           mov printTmp, ah
+[ 618]        :                                       ;imprime o tempo em minutos e segundos
+[ 619]    0869: 50 A0 31 01 B4 0E CD 10 58            PUTC printTmp
+[ 620]        :                                       
+[ 621]    0872: 50 B0 3A B4 0E CD 10 58               PUTC ':'
+[ 622]        :                                       
+[ 623]    087A: B8 00 00                              mov ax, 0
+[ 624]    087D: 8A C6                                 mov al, dh
+[ 625]        :                                       
+[ 626]    087F: F6 F5                                 div ch
+[ 627]        :                                       
+[ 628]    0881: 80 C4 30                              add ah, 30h
+[ 629]    0884: 04 30                                 add al, 30h
+[ 630]        :                                       
+[ 631]    0886: A2 31 01                              mov printTmp, al
+[ 632]        :                                       
+[ 633]    0889: 50 A0 31 01 B4 0E CD 10 58            PUTC printTmp
+[ 634]        :                                       
+[ 635]    0892: 88 26 31 01                           mov printTmp, ah
+[ 636]        :                                       
+[ 637]    0896: 50 A0 31 01 B4 0E CD 10 58            PUTC printTmp
+[ 638]        :                                       
+[ 639]    089F: E9 3E FB                              jmp continueLoop
+[ 640]        :                                       
+[ 641]        :                                       end start
+[ 642]        :                                       
+[ 643]        :                                       
+ 
+===================================================================================================
+ 
+
+
+
+
+===================================================================================================
